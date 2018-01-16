@@ -225,9 +225,13 @@ def main():
         print("Error: Connection refused.")
         exit(-1)
 
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt):
         print("Aborting...")
         exit(-1)
+
+    except (SystemExit):
+        print("Finished...")
+        exit(0)
 
     print("Usage: " + argv[0] + " [files|announcements]")
 
