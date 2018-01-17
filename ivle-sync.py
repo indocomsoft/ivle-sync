@@ -52,7 +52,7 @@ class WorkbinFolder:
         print("    " * indent + self.name + "/")
 
         for folder in self.folders:
-            folder.print(indent + 1)
+            folder. print(indent + 1)
 
         for file in self.files:
             print("    " * (indent + 1) + file.name)
@@ -76,40 +76,51 @@ class IVLESession:
 
     def get_token(self):
         try:
-            return credentials['TOKEN']
+            self.token = ""
+            r = self.lapi("Validate", {"Token": credentials['TOKEN']})
+            if not r["Success"]:
+                print("Invalid token")
+                clear_token()
+                return self.new_token()
+
+            if r['Token'] != credentials['TOKEN']:
+                print(
+                    "New token obtained -- old token is expiring in one day.")
+                credentials['TOKEN'] = r['Token']
+                write_credentials()
+            return r['Token']
 
         except KeyError:
-            r = self.s.get("https://ivle.nus.edu.sg/api/login/?apikey=" +
-                           credentials['LAPI_KEY'])
-            soup = BeautifulSoup(r.content, "html.parser")
+            return self.new_token()
 
-            VIEWSTATE = soup.find(id="__VIEWSTATE")['value']
-            VIEWSTATEGENERATOR = soup.find(id="__VIEWSTATEGENERATOR")['value']
+    def new_token(self):
+        r = self.s.get("https://ivle.nus.edu.sg/api/login/?apikey=" +
+                       credentials['LAPI_KEY'])
+        soup = BeautifulSoup(r.content, "html.parser")
 
-            userid, password = get_credentials()
+        VIEWSTATE = soup.find(id="__VIEWSTATE")['value']
+        VIEWSTATEGENERATOR = soup.find(id="__VIEWSTATEGENERATOR")['value']
 
-            data = {
-                "__VIEWSTATE": VIEWSTATE,
-                "__VIEWSTATEGENERATOR": VIEWSTATEGENERATOR,
-                "userid": userid,
-                "password": password
-            }
+        userid, password = get_credentials()
 
-            r = self.s.post("https://ivle.nus.edu.sg/api/login/?apikey=" +
-                            credentials['LAPI_KEY'], data)
+        data = {
+            "__VIEWSTATE": VIEWSTATE,
+            "__VIEWSTATEGENERATOR": VIEWSTATEGENERATOR,
+            "userid": userid,
+            "password": password
+        }
 
-            if len(r.text) > 1000:  # hacky way to check if return is a HTML page
-                return ''
+        r = self.s.post("https://ivle.nus.edu.sg/api/login/?apikey=" +
+                        credentials['LAPI_KEY'], data)
 
-            credentials['TOKEN'] = r.text
+        if len(r.text) > 1000:  # hacky way to check if return is a HTML page
+            return ''
 
-            with open(
-                    join(dirname(realpath(__file__)), 'credentials.json'),
-                    'w',
-                    encoding='utf-8') as file:
-                json.dump(credentials, file)
+        credentials['TOKEN'] = r.text
+        if yes_no():
+            write_credentials()
 
-            return r.text
+        return r.text
 
     def get_modules(self):
         result = self.lapi("Modules")
@@ -117,8 +128,8 @@ class IVLESession:
         modules = []
         for module in result["Results"]:
             modules.append(
-                Module(module["ID"], module["CourseName"], module[
-                    "CourseCode"]))
+                Module(module["ID"], module["CourseName"],
+                       module["CourseCode"]))
         return modules
 
     def get_workbin(self, module):
@@ -191,9 +202,10 @@ def sync_announcements(session):
 
     for module in modules:
         print(module.code + ": " + module.name)
-        announcements = session.lapi(
-            "Announcements", {"CourseID": module.id,
-                              "Duration": DURATION})
+        announcements = session.lapi("Announcements", {
+            "CourseID": module.id,
+            "Duration": DURATION
+        })
         for announcement in announcements["Results"]:
             print("\n\n\n")
             print("=== " + announcement["Title"] + " ===")
@@ -214,6 +226,45 @@ def get_credentials():
     return (userid, password)
 
 
+def clear_token():
+    try:
+        del credentials['TOKEN']
+        write_credentials()
+        print("Token cleared.")
+    except:
+        print("No token is set.")
+        exit(-1)
+
+
+def write_credentials():
+    try:
+        with open(
+                join(dirname(realpath(__file__)), 'credentials.json'),
+                'w',
+                encoding='utf-8') as file:
+            json.dump(credentials, file)
+
+    except:
+        print("Error writing to credentials.json")
+        exit(-1)
+
+
+def yes_no():
+    yes = set(['yes', 'y'])
+    no = set(['no', 'n'])
+
+    while True:
+        choice = input(
+            "Do you want to write the token obtained to credentials.json?[y/n] "
+        ).lower()
+        if choice in yes:
+            return True
+        elif choice in no:
+            return False
+        else:
+            print("Please respond with 'yes' or 'no'")
+
+
 def main():
 
     if credentials['LAPI_KEY'] == '':
@@ -231,6 +282,8 @@ def main():
                 session = IVLESession()
                 if session.token != '':
                     sync_announcements(session)
+            elif argv[1] == "clear-token" or argv[1] == "c":
+                clear_token()
             exit(1)
 
     except (requests.exceptions.RequestException):
@@ -245,7 +298,7 @@ def main():
         print("Finished...")
         exit(0)
 
-    print("Usage: " + argv[0] + " [files|announcements]")
+    print("Usage: " + argv[0] + " [files|announcements|clear-token]")
 
 
 if __name__ == "__main__":
