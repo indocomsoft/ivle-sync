@@ -187,9 +187,12 @@ def sync_files(session):
     modules = session.get_modules()
 
     for module in modules:
+        print(module.code + ": " + module.name)
         folders = session.get_workbin(module)
         for folder in folders:
+            print("Iterating thorugh " + folder.path)
             session.download_folder(folder)
+        print()
 
 
 def sync_announcements(session):
@@ -198,6 +201,7 @@ def sync_announcements(session):
     DURATION = 60 * 24 * 5
 
     for module in modules:
+        print(module.code + ": " + module.name)
         announcements = session.lapi("Announcements", {
             "CourseID": module.id,
             "Duration": DURATION
@@ -209,7 +213,9 @@ def sync_announcements(session):
                                         "html.parser").get_text()
             description = re.sub(r'\n\s*\n', '\n', description)
             print(description)
-            input()
+            # input()
+
+        print()
 
 
 def get_credentials():
@@ -284,9 +290,13 @@ def main():
         print("Error: Connection refused.")
         exit(-1)
 
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt):
         print("Aborting...")
         exit(-1)
+
+    except (SystemExit):
+        print("Finished...")
+        exit(0)
 
     print("Usage: " + argv[0] + " [files|announcements|clear-token]")
 
