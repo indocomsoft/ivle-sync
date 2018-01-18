@@ -203,15 +203,15 @@ def sync_announcements(session):
             "Duration": DURATION
         })
         for announcement in announcements["Results"]:
-            print("\n\n\n")
             print("=== " + announcement["Title"] + " ===")
             description = BeautifulSoup(announcement["Description"],
                                         "html.parser").get_text()
             description = re.sub(r'\n\s*\n', '\n', description)
             print(description)
+            print()
             # input()
 
-        print()
+        print("\n")
 
 
 def get_credentials():
