@@ -198,20 +198,16 @@ def sync_announcements(session):
 
     for module in modules:
         print(module.code + ": " + module.name)
-        announcements = session.lapi("Announcements", {
-            "CourseID": module.id,
-            "Duration": DURATION
-        })
+        announcements = session.lapi(
+            "Announcements", {"CourseID": module.id,
+                              "Duration": DURATION})
         for announcement in announcements["Results"]:
             print("=== " + announcement["Title"] + " ===")
             description = BeautifulSoup(announcement["Description"],
                                         "html.parser").get_text()
             description = re.sub(r'\n\s*\n', '\n', description)
             print(description)
-            print()
-            # input()
-
-        print("\n")
+        print()
 
 
 def get_credentials():
@@ -308,7 +304,11 @@ def main():
         exit(-1)
 
     except (SystemExit):
+<<<<<<< HEAD
         print("Finished...")
+=======
+        print("Finished!")
+>>>>>>> 0896072589aa46006ab757d903011f90558abcf3
         exit(0)
 
     print("Usage: " + argv[0] + " [files|announcements|logout]")
